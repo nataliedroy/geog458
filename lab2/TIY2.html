@@ -1,0 +1,75 @@
+<!-- initialize the document -->
+<!doctype html>
+<html>
+  <head>
+    <!-- add d3 to html document -->
+    <script src="http://d3js.org/d3.v5.min.js" type="text/JavaScript"></script>
+    <!-- styles the map, giving it a purple stroke and blue fill -->
+      <style>
+        path {
+           stroke-width: 1;
+           stroke: #75739F;
+           fill: #5EAFC6;
+        }
+    </style>
+  </head>
+  <body>
+    <!-- div to keep the map in-->
+    <div id="map">
+      <script>
+        // sets a height and width for the map
+        var height = 600;
+        var width = 900;
+
+        // sets the projection for the map, setting the proper scale
+        // and translatioing to the center
+        var projection = d3.geoMercator().scale(1).translate([0, 0]);
+
+        // sets up the map, applying the previously defined projection to it,
+        // placing it in the map div, and apending the svg element to it
+        var path = d3.geoPath().projection(projection);
+        var svg = d3.select("#map")
+          .append("svg")
+          .attr("width", width)
+          .attr("height", height);
+
+        // loads in the data, printing the feature collection to the console
+        d3.json('world.geojson').then(function(data) {
+        console.log('world', data);
+        // STEP 3
+         var b = path.bounds(data.features[169]);
+
+        //STEP 4
+        var s = .95 / Math.max((b[1][0] - b[0][0]) / width, (b[1][1] - b[0][1]) / height);
+        var t = [(width - s * (b[1][0] + b[0][0])) / 2, (height - s * (b[1][1] + b[0][1])) / 2];
+        projection.scale(s).translate(t);
+
+
+        // for every feature of the geojson file, the map draws a path based
+        // on the feature information. loads the geometries, joining them to the
+        // svg paths
+        var map = svg.append('g')
+             .attr('class', 'boundary')
+             .selectAll("path")
+             .data(data.features)
+             .enter()
+             .append("path")
+             .attr("d", path)
+             .style("fill",function(d) {
+                         if (d.id=="USA") { return "teal";
+                            }
+                          else if(d.id=="CAN") { return "pink";
+                          }
+                            else {
+                             return "transparent";
+                                }})
+           });
+         // end javascript and other document tags
+      </script>
+      <p> I chose Canada as it is the only country outside of the U.S. I have been to!
+        I hope to go to other countries at some point after graduation :) I also
+        chose to make it pink because it is my favorite color and I think it looks
+        nice against the teal.</p>
+    </div>
+  </body>
+</html>

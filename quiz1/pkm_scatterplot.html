@@ -1,0 +1,135 @@
+<!-- initializes the html page -->
+<!doctype html>
+<html>
+<head>
+  <!-- style for hover background -->
+  <style>
+    div.tooltip {
+     position: absolute;
+     text-align: center;
+     padding: .2rem;
+     background: #313639;
+     color: #f9f9f9;
+     border: 0px;
+     border-radius: 8px;
+     pointer-events: none;
+     font-size: .7rem;
+     font-family: "Arial";
+   }
+  </style>
+  <!-- adds d3 javascript to the page -->
+   <script src="http://d3js.org/d3.v5.min.js" charset="utf-8"></script>
+</head>
+<body>
+  <!-- creates a div for the visualization-->
+   <div id="viz">
+     <script>
+     // set the dimensions and margins of the graph
+  var margin = {top: 20, right: 20, bottom: 140, left: 100},
+      width = 1000 - margin.left - margin.right,
+      height = 600 - margin.top - margin.bottom;
+
+  // creates the svg element and respecting margins
+  var svg = d3.select("#viz")
+      .append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+      .append("g")
+      .attr("transform",
+            "translate(" + margin.left + "," + margin.top + ")");
+
+            // Add X axis label:
+                svg.append("text")
+                   .attr("text-anchor", "end")
+                   .attr("x", 400 )
+                   .attr("y", 500 )
+                   .text("Longitude");
+           // Y axis label:
+               svg.append("text")
+                  .attr("text-anchor", "end")
+                  .attr("transform", "rotate(-90)")
+                  .attr("y", -margin.left+20)
+                  .attr("x", -margin.top)
+                  .text("Latitude")
+
+// load in the data
+  d3.csv("pkm_au22.csv").then (function(incomingData) {
+      console.log(incomingData);
+      // get pokemon names
+      var pkmName = incomingData.map( d => d.pkm)
+
+      // get max lat and long
+      var maxLat = d3.max(incomingData, function(d) {return d.lat})
+      var maxLong = d3.max(incomingData, function(d) {return d.lon})
+      var minLat = d3.min(incomingData, function(d) {return d.lat})
+      var minLong = d3.min(incomingData, function(d) {return d.lon})
+
+      // assign a color to each dot based on the environment status
+      var color = d3.scaleOrdinal()
+      .domain(["built", "nature"])
+      .range([ "#F15F5F", "#5FA4F1"])
+
+      // determine scales
+      var xScale = d3.scaleLinear().domain([maxLong, -122.299]).range([800, 0]);
+      var yScale = d3.scaleLinear().domain([47.646, maxLat]).range([460, 0]);
+
+      // create a div variable for tooltip
+      var div = d3.select("body").append("div")
+        .attr("class", "tooltip")
+        .style("opacity", 0);
+
+      // draw circles
+      svg.selectAll("circle")
+         .data(incomingData)
+         .enter()
+         .append("circle")
+         .attr("r", 10)
+         .attr("cx", function(d) {return  xScale(d.lon);})
+         .attr("cy", function(d) {return  yScale(d.lat);})
+         .style("fill", function (d) { return color(d.env);})
+         .style("fill-opacity", .5)
+         .style("stroke", "light-blue")
+         .style("stroke-width", "1px")
+         // hover events: point gets slightly larger, loses transparency,
+         // and contains the name of the pokemon as well as other information
+         // from the .csv
+         .on('mouseover', function (d, i) {
+              d3.select(this).transition()
+                .duration('100')
+                .attr("r", 15)
+                .style("fill-opacity", 1);
+              div.transition()
+                .duration(100)
+                .style("opacity", 1);
+
+              div.html("Name: " + d.pkm + "<p> Location: " + d.location +
+                "<p> Catcher: " + d.collector + "<p> Image: <p> <img src=" + d.imgUrl
+                  + " height ='200' >" )
+              // positions div over cursor
+                .style("left", (d3.event.pageX + 10) + "px")
+                .style("top", (d3.event.pageY - 15) + "px");
+              })
+        // hover exit
+        .on('mouseout', function (d, i) {
+              d3.select(this).transition()
+                .duration('200')
+                .attr("r", 10)
+                .style("fill-opacity", .5);
+              div.transition()
+                 .duration('200')
+                 .style("opacity", 0);
+              });
+         ;
+
+         svg.append("g")
+             .call(d3.axisLeft(yScale));
+
+         svg.append("g")
+             .attr("transform", "translate(0,460)")
+             .call(d3.axisBottom(xScale));
+
+            });
+     </script>
+   </div>
+</body>
+</html>

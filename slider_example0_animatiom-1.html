@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Animated map</title>
+  <style>
+  .boundary {
+    fill: none;
+    stroke: #888;
+    stroke-linejoin: round;
+  }
+  svg {
+    border-style: solid;
+    border-width: 1px;
+    border-color: #ccc;
+  }
+  </style>
+</head>
+<body>
+  <div><h2 id="year">Year: 2000</h2>
+  <input id="slider" type="range" min="2000" max="2020" value="2000" step="1" />
+  <span id="range">2000</span>
+  <button id="start">start</button>
+  <button id="stop">stop</button></div>
+  <div id="map"><h2>Population by Counties, WA </h2></div>
+  <script src="http://d3js.org/d3.v5.min.js" charset="utf-8"></script>
+  <script src="https://unpkg.com/topojson@3.0.2/dist/topojson.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.min.js"></script>
+
+<script>
+
+//------------------set up a map svg
+      var height = 450;
+      var width = 870;
+      var projection = d3.geoMercator();
+      var path = d3.geoPath().projection(projection);
+
+      var svg = d3.select("#map")
+          .append("svg")
+          .attr("width", width)
+          .attr("height", height);
+
+//------------------slider
+
+
+//---------------------load data
+      d3.json('WAcounties.geojson').then(function(data) {
+
+        var b, s, t;
+        projection.scale(1).translate([0, 0]);
+        var b = path.bounds(data);
+        var s = .9 / Math.max((b[1][0] - b[0][0]) / width, (b[1][1] - b[0][1]) / height);
+        var t = [(width - s * (b[1][0] + b[0][0])) / 2, (height - s * (b[1][1] + b[0][1])) / 2];
+        projection.scale(s).translate(t);
+
+        console.log(data.features)
+
+        var arr = [];
+        for(var i = 0; i < data.features.length; i++){
+           arr.push(data.features[i].properties.POP2000)}
+        var arr1 = [];
+        for(var i = 0; i < data.features.length; i++){
+           arr1.push(data.features[i].properties.POP2020)  }
+       console.log(arr);
+       var minVal = d3.min(arr);
+       var maxVal = d3.max(arr1);
+
+      var color = d3.scaleThreshold().domain([50000, 100000, 300000, 800000, 2200000]).range(['#fef0d9','#fdd49e','#fdbb84','#fc8d59','#e34a33','#b30000'])
+//------------------Draw a map-------------------------
+      var map1 = svg.append('g').attr('class', 'boundary');
+
+          map1.selectAll('path').data(data.features).enter()
+                .append('path')
+                .attr('d', path)
+                .style('fill', function(d){
+                   return color(d.properties.POP2000)
+                 });
+
+        map1
+        .append("text")
+        .text("2000")
+        .attr("class", "t")
+        .attr("text-anchor", "right")
+        .attr("x", 10)
+        .attr("y", 60)
+        .attr("font-family", "Arial")
+        .attr("font-size", "50px")
+        .attr("fill", "lightGrey")
+        .attr("font-weight", "bold")
+
+       var legend = svg.append("g").attr("class","legend")
+                       .attr("transform", "translate(10,320)");
+       legend = d3.legendColor()
+                      .labels(d3.legendHelpers.thresholdLabels)
+                      .scale(color);
+      svg.select(".legend")
+        .call(legend);
+
+//-------------------end choropleth
+//------------------------update map and bar graph with an input value in range-------------------------
+//d3.selectAll("input").on("change",
+    function update(timePoint) {
+                   var value = timePoint;//this.value;
+        document.getElementById("year").innerHTML = "Year: " + value;
+        document.getElementById("range").innerHTML = value;
+        map1.select(".t").text(value)
+
+        map1.selectAll('path').style("fill", function(d) {  switch(value){
+                     case 2000: return color(d.properties.POP2000); break;
+                     case 2001: return color(d.properties.POP2001); break;
+                     case 2002: return color(d.properties.POP2002); break;
+                     case 2003: return color(d.properties.POP2003); break;
+                     case 2004: return color(d.properties.POP2004); break;
+                     case 2005: return color(d.properties.POP2005); break;
+                     case 2006: return color(d.properties.POP2006); break;
+                     case 2007: return color(d.properties.POP2007); break;
+                     case 2008: return color(d.properties.POP2008); break;
+                     case 2009: return color(d.properties.POP2009); break;
+                     case 2010: return color(d.properties.POP2010); break;
+                     case 2011: return color(d.properties.POP2011); break;
+                     case 2012: return color(d.properties.POP2012); break;
+                     case 2013: return color(d.properties.POP2013); break;
+                     case 2014: return color(d.properties.POP2014); break;
+                     case 2015: return color(d.properties.POP2015); break;
+                     case 2016: return color(d.properties.POP2016); break;
+                     case 2017: return color(d.properties.POP2017); break;
+                     case 2018: return color(d.properties.POP2018); break;
+                     case 2019: return color(d.properties.POP2019); break;
+                     case 2020: return color(d.properties.POP2020); break;}})}//);
+
+ //----- Run the update function when the slider is changed
+               d3.select('#slider').on('input', function() {
+                 	update(this.value);
+                  });
+               var myTimer;
+               d3.select("#start").on("click", function() {
+                   clearInterval (myTimer);
+               	   myTimer = setInterval (function() {
+                     	 var s= d3.select("#slider");
+                       var tt = (+s.property("value") + 1) % (+s.property("max") + 1);
+                       if (tt == 0) { tt = +s.property("min"); }
+                                      s.property("value", tt);
+                          update (tt);
+                        }, 500);
+                     });
+
+               d3.select("#stop").on("click", function() {
+               	clearInterval (myTimer);
+               });
+
+});
+
+  </script>
+</body>
+</html>

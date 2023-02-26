@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>map</title>
+  <style>
+  .boundary {
+    fill: none;
+    stroke: #888;
+    stroke-linejoin: round;
+  }
+  svg {
+    border-style: solid;
+    border-width: 1px;
+    border-color: #ccc;
+  }
+  </style>
+
+</head>
+<body>
+  <div id="map"><h4 id="year">Population by Counties, WA in the year of 2000 </h4></div>
+  <input id="slider" type="range" min="2000" max="2020" value="2000" step="1" />
+  <span id="range">2000</span></div>
+    <div id="bar"></div>
+  <script src="http://d3js.org/d3.v5.min.js" charset="utf-8"></script>
+  <script src="https://unpkg.com/topojson@3.0.2/dist/topojson.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.min.js"></script>
+<script>
+
+//----------------- set up bar graph
+var bmargin = {top: 20, right: 20, bottom: 80, left: 100},
+    bwidth = 700 - bmargin.left - bmargin.right,
+    bheight = 350 - bmargin.top - bmargin.bottom;
+
+ var svg1 = d3.select("#bar").append("svg")
+     .attr("width", bwidth + bmargin.left + bmargin.right)
+     .attr("height", bheight + bmargin.top + bmargin.bottom)
+     .append("g")
+     .attr("transform","translate(" + bmargin.left + "," + bmargin.top + ")")
+           // Add X axis label:
+    svg1.append("text")
+              .attr("text-anchor", "end")
+              .attr("x", bwidth )
+              .attr("y", bheight + bmargin.top+50)
+              .text("Counties");
+
+            // Y axis label:
+    svg1.append("text")
+                .attr("text-anchor", "end")
+                .attr("transform", "rotate(-90)")
+                .attr("y", -bmargin.left+20)
+                .attr("x", -bmargin.top)
+                .text("Population")
+
+//------------------set up a map svg
+      var height = 450;
+      var width = 870;
+      var projection = d3.geoMercator();
+      var path = d3.geoPath().projection(projection);
+
+      var svg = d3.select("#map")
+          .append("svg")
+          .attr("width", width)
+          .attr("height", height);
+//--------------------load data
+      d3.json('WAcounties.geojson').then(function(data) {
+
+        var b, s, t;
+        projection.scale(1).translate([0, 0]);
+        var b = path.bounds(data);
+        var s = .9 / Math.max((b[1][0] - b[0][0]) / width, (b[1][1] - b[0][1]) / height);
+        var t = [(width - s * (b[1][0] + b[0][0])) / 2, (height - s * (b[1][1] + b[0][1])) / 2];
+        projection.scale(s).translate(t);
+
+        console.log(data.features)
+
+        var arr = [];
+        for(var i = 0; i < data.features.length; i++){
+           arr.push(data.features[i].properties.POP2000)}
+        var arr1 = [];
+        for(var i = 0; i < data.features.length; i++){
+           arr1.push(data.features[i].properties.POP2020)  }
+       console.log(arr);
+       var minVal = d3.min(arr);
+       var maxVal = d3.max(arr1);
+
+      var color = d3.scaleThreshold([50000, 100000, 300000, 800000, 2200000], ['#fef0d9','#fdd49e','#fdbb84','#fc8d59','#e34a33','#b30000'])
+      var hover = function(d,i) {
+                 d3.selectAll('path').attr('opacity', 0.8)
+                 d3.select(this).attr('opacity', 1).style('stroke', 'Goldenrod').style('stroke-width', 3)
+                  // .style('stroke-dasharray', ('3 3'))
+                 d3.selectAll("rect.barc"+i).style("fill","red")} //find a county in Bar and change color
+
+    var out = function(d, i){
+            d3.selectAll('path').attr('opacity', 1)
+            d3.select(this).style('stroke', 'grey').style('stroke-width',1)//function(d){return 'grey'})
+            d3.selectAll("rect.barc"+i).style("fill","DarkBlue")}
+//------------------Draw a map-------------------------
+      var map1 = svg.append('g').attr('class', 'boundary');
+          map1.selectAll('path').data(data.features).enter()
+                .append('path')
+                .attr('d', path)
+                .style('fill', function(d){ return color(d.properties.POP2000)
+                 })
+                .on("mouseover", hover)
+                .on("mouseout", out);
+
+        map1.append("text")
+            .text("2000")
+            .attr("class", "t")
+            .attr("text-anchor", "right")
+            .attr("x", 10)
+            .attr("y", 60)
+            .attr("font-family", "Arial")
+            .attr("font-size", "50px")
+            .attr("fill", "lightGrey")
+            .attr("font-weight", "bold")
+
+            var legend = svg.append("g").attr("class","legend")
+                            .attr("transform", "translate(10,320)");
+            legend = d3.legendColor()
+                           .labels(d3.legendHelpers.thresholdLabels)
+                           .scale(color);
+           svg.select(".legend")
+             .call(legend);
+//-------------------end choropleth
+
+//-------------------begin bar graph
+ var wa = data.features
+ var name = d3.map(wa, d=>d.properties.NAME10).keys();
+
+ var xScale = d3.scaleBand().domain(name).range([0, bwidth]);
+ var yScale = d3.scaleLinear().domain([0, maxVal]).range([bheight, 0]);
+
+ svg1.append("g")
+    .call(d3.axisLeft(yScale));
+
+ svg1.append("g")
+    .attr("transform", "translate(0," + bheight + ")")
+    .call(d3.axisBottom(xScale)).selectAll("text").attr("transform", "translate(-10,10)rotate(-45)");
+ console.log(name)
+  svg1.append('g')
+       .selectAll('rect').data(data.features)
+       .enter()
+       .append("rect")
+       .attr("x", function(d, i) {return  i *(bwidth/name.length);})
+       .attr("y", function(d) {return  yScale(d.properties.POP2000);})
+       .attr("width",   1/4*xScale.bandwidth())
+       .attr("height", function(d) {return  bheight - yScale(d.properties.POP2000);})
+       .style("fill", "DarkBlue")
+       .attr("class",function(d,i) { return "barc" + i; })
+
+//------------------------update map and bar graph with an year input value in range (slider)-------------------------
+d3.selectAll("input").on("change",
+            function change() {
+                   var value = this.value;
+        document.getElementById("year").innerHTML = "Population by Counties, WA in the year of" + value;
+        document.getElementById("range").innerHTML = value;
+        map1.select(".t").text(value)
+
+        map1.selectAll('path').style("fill", function(d) {  switch(value){
+                     case "2000": return color(d.properties.POP2000); break;
+                     case "2001": return color(d.properties.POP2001); break;
+                     case "2002": return color(d.properties.POP2002); break;
+                     case "2003": return color(d.properties.POP2003); break;
+                     case "2004": return color(d.properties.POP2004); break;
+                     case "2005": return color(d.properties.POP2005); break;
+                     case "2006": return color(d.properties.POP2006); break;
+                     case "2007": return color(d.properties.POP2007); break;
+                     case "2008": return color(d.properties.POP2008); break;
+                     case "2009": return color(d.properties.POP2009); break;
+                     case "2010": return color(d.properties.POP2010); break;
+                     case "2011": return color(d.properties.POP2011); break;
+                     case "2012": return color(d.properties.POP2012); break;
+                     case "2013": return color(d.properties.POP2013); break;
+                     case "2014": return color(d.properties.POP2014); break;
+                     case "2015": return color(d.properties.POP2015); break;
+                     case "2016": return color(d.properties.POP2016); break;
+                     case "2017": return color(d.properties.POP2017); break;
+                     case "2018": return color(d.properties.POP2018); break;
+                     case "2019": return color(d.properties.POP2019); break;
+                     case "2020": return color(d.properties.POP2020); break;}})
+
+         svg1.selectAll('rect').attr("y", function(d) {  switch(value){
+                     case "2000": return yScale(d.properties.POP2000); break;
+                     case "2001": return yScale(d.properties.POP2001); break;
+                     case "2002": return yScale(d.properties.POP2002); break;
+                     case "2003": return yScale(d.properties.POP2003); break;
+                     case "2004": return yScale(d.properties.POP2004); break;
+                     case "2005": return yScale(d.properties.POP2005); break;
+                     case "2006": return yScale(d.properties.POP2006); break;
+                     case "2007": return yScale(d.properties.POP2007); break;
+                     case "2008": return yScale(d.properties.POP2008); break;
+                     case "2009": return yScale(d.properties.POP2009); break;
+                     case "2010": return yScale(d.properties.POP2010); break;
+                     case "2011": return yScale(d.properties.POP2011); break;
+                     case "2012": return yScale(d.properties.POP2012); break;
+                     case "2013": return yScale(d.properties.POP2013); break;
+                     case "2014": return yScale(d.properties.POP2014); break;
+                     case "2015": return yScale(d.properties.POP2015); break;
+                     case "2016": return yScale(d.properties.POP2016); break;
+                     case "2017": return yScale(d.properties.POP2017); break;
+                     case "2018": return yScale(d.properties.POP2018); break;
+                     case "2019": return yScale(d.properties.POP2019); break;
+                     case "2020": return yScale(d.properties.POP2020); break;}})
+
+         .attr("height", function(d) {  switch(value){
+                    case "2000": return bheight - yScale(d.properties.POP2000); break;
+                    case "2001": return bheight - yScale(d.properties.POP2001); break;
+                    case "2002": return bheight - yScale(d.properties.POP2002); break;
+                    case "2003": return bheight - yScale(d.properties.POP2003); break;
+                    case "2004": return bheight - yScale(d.properties.POP2004); break;
+                    case "2005": return bheight - yScale(d.properties.POP2005); break;
+                    case "2006": return bheight - yScale(d.properties.POP2006); break;
+                    case "2007": return bheight - yScale(d.properties.POP2007); break;
+                    case "2008": return bheight - yScale(d.properties.POP2008); break;
+                    case "2009": return bheight - yScale(d.properties.POP2009); break;
+                    case "2010": return bheight - yScale(d.properties.POP2010); break;
+                    case "2011": return bheight - yScale(d.properties.POP2011); break;
+                    case "2012": return bheight - yScale(d.properties.POP2012); break;
+                    case "2013": return bheight - yScale(d.properties.POP2013); break;
+                    case "2014": return bheight - yScale(d.properties.POP2014); break;
+                    case "2015": return bheight - yScale(d.properties.POP2015); break;
+                    case "2016": return bheight - yScale(d.properties.POP2016); break;
+                    case "2017": return bheight - yScale(d.properties.POP2017); break;
+                    case "2018": return bheight - yScale(d.properties.POP2018); break;
+                    case "2019": return bheight - yScale(d.properties.POP2019); break;
+                    case "2020": return bheight - yScale(d.properties.POP2020); break;}})});
+
+
+});
+
+  </script>
+</body>
+</html>

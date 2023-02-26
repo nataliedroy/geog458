@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+  <link rel="stylesheet" href="Dashboard.css">
+  <script src="http://d3js.org/d3.v5.min.js" charset="utf-8"></script>
+  <script src="https://unpkg.com/topojson@3.0.2/dist/topojson.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.min.js"></script>
+
+    <!-- sidebar -->
+  <div id="info">
+   <div id="title">
+    Population in Washington - Year 2020
+   </div>
+   <p id="placename">Washington</p>
+    <div id="count" class="card">
+     <h5 id="desc"> # Population in the selected county</h5>
+     <p id="county-count">7.615 million</p>
+    </div>
+    <div id="county-chart"></div>
+    <div id="footer">
+      Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute
+      irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Lorem ipsum dolor sit amet,
+      consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit
+      in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
+      eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum
+      dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+    </div>
+  </div>
+  <!-- mainwindow -->
+  <div id="map"></div>
+  <div id="tooltip"></div>
+  <script>
+    var mheight = 700;
+    var mwidth = 1000;
+    var projection = d3.geoMercator()
+    var wa = void 0;
+    var db = new Map();
+    var array = Array.from(db);
+console.log("db", db);
+
+ //var test = new Map(Object.entries(db));
+  //  console.log("array", test);
+
+   var chartmargin = {top: 10, right: 30, bottom: 30, left: 60},
+    chartwidth = 400 - chartmargin.left - chartmargin.right,
+    chartheight = 350 - chartmargin.top - chartmargin.bottom;
+
+        // create svg element
+      var chart = d3.select("#county-chart")
+          .append("svg")
+          .attr("width", chartwidth + chartmargin.left + chartmargin.right)
+          .attr("height", chartheight + chartmargin.top + chartmargin.bottom)
+          .append("g").attr('class', 'line')
+          .attr("transform","translate(" + chartmargin.left + "," + chartmargin.top + ")");
+
+      var xScale = d3.scaleLinear().domain([2000, 2020]).range([0, chartwidth]);
+
+      var y = d3.scaleLinear().range([ chartheight, 0 ]);
+      var yAxis = d3.axisLeft().scale(y);
+          chart.append("g").attr("class", "myYaxis")
+
+
+    var out = function(d){
+        var div = document.getElementById('county-count')
+         d3.selectAll('path').attr('opacity', 1)
+        d3.select(this).transition().duration(500)
+            .style('stroke', function(d){return 'transparent'})
+        var divChart = document.getElementById('county-chart')
+        chart.select('.line').transition().duration(100).remove();
+                              }
+    var path = d3.geoPath().projection(projection);
+    var svg = d3.select("#map")
+        .append("svg")
+        .attr("width", mwidth)
+        .attr("height", mheight);
+
+    d3.json('WAcounties.geojson').then(function(data) {
+    console.log('WAcounties', data);
+
+    var setDb = function(data) {
+          data.forEach(function(d) {
+            db.set(d.properties.OBJECTID, [
+               {"x": 2000, "y": +d.properties.POP2000},
+               {"x": 2005, "y": +d.properties.POP2005},
+               {"x": 2010, "y": +d.properties.POP2010},
+               {"x": 2015, "y": +d.properties.POP2015},
+               {"x": 2020, "y": +d.properties.POP2020}
+            ]);
+          });
+        };
+
+   setDb(data.features);
+
+    projection.scale(1).translate([0, 0]);
+    var b = path.bounds(data);
+    var s = .95 / Math.max((b[1][0] - b[0][0]) / mwidth, (b[1][1] -
+b[0][1]) / mheight);
+    var t = [(mwidth - s * (b[1][0] + b[0][0])) / 2, (mheight - s *
+(b[1][1] + b[0][1])) / 2-50];
+    projection.scale(s).translate(t);
+
+    var map = svg.append('g').attr('class', 'boundary');
+         wa = map.selectAll('path').data(data.features);
+
+    var color = d3.scaleLinear()
+        .domain([2220,22520, 64980, 129200, 258800, 515250, 888300, 2230000])
+        .range(["#f0f9e8","#ccebc5","#a8ddb5","#7bccc4","#4eb3d3","#2b8cbe","#08589e"]);
+
+    var hover = function(d) {
+            var div = document.getElementById('county-count');
+               d3.selectAll('path').attr('opacity', 0.7)
+               d3.select(this).attr('opacity', 1).style('stroke', '	#990000').style('stroke-width', 5)
+               .style('stroke-dasharray', ('3 3'))
+               div.innerHTML = d.properties.NAMELSAD10 + "<br/> " + d.properties.POP2019;
+
+            var divChart = document.getElementById('county-chart')
+
+            var lines = db.get(d.properties.OBJECTID)
+            console.log(lines)
+
+            chart.append("g")
+                     .attr("transform", "translate(0," + chartheight + ")")
+                     .call(d3.axisBottom(xScale).ticks(6));
+            y.domain([d3.min(lines, function(d) { return d.y }), d3.max(lines, function(d) { return d.y }) ]);
+            chart.selectAll(".myYaxis")
+                 .transition().duration(1000)
+                 .call(yAxis);
+        var cline = d3.line()
+                      .x(function(d) { return xScale(d.x)})
+                      .y(function(d) { return y(d.y)});
+         chart.append('g').selectAll('.line')
+                 .data([lines])
+                 .enter().append("path")
+                 .attr("class", "line").merge(chart)
+                 .transition().duration(500)
+                 .attr("d",cline)
+                 .attr("stroke", 'yellow')
+                 .style("stroke-width", 4)
+                 .style("fill", "none")
+          }
+
+// Enter
+   wa.enter()
+     .append('path')
+     .attr('d', path)
+     .on("mouseover", hover)
+     .on("mouseout", out)
+     .style('fill', function(d){
+      return color(d.properties.POP2020)
+       });
+
+wa.exit().remove();
+
+// add a legend
+ svg.append("g")
+		.attr("class", "legend")
+    .attr("transform", "translate(550,600)");
+
+  var legendLinear = d3.legendColor()
+    .shapeWidth(80)
+    .orient('horizontal')
+    .scale(color);
+
+  svg.select(".legend")
+    .call(legendLinear);
+
+});
+  </script>
+</body>
+</html>

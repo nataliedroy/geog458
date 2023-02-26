@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+</head>
+<body>
+  <svg id="viz_area" height=1000 width=700></svg>
+  <!-- Load d3.js -->
+  <script src="https://d3js.org/d3.v4.js"></script>
+  <script>
+  var cities = [
+    // creates a variable that stores several city names and their accompanying
+    // populations
+    { name: 'London', population: 8674000},
+    { name: 'New York', population: 8406000},
+    { name: 'Sydney', population: 4293000},
+    { name: 'Paris', population: 2244000},
+    { name: 'Beijing', population: 11510000}
+  ];
+
+  d3.select('#viz_area')
+    .selectAll('circle')
+    .data(cities)
+    .enter()
+    // adds a circle for each city, with the radius becoming bigger or smaller
+    // depending on the size of the city
+    .append("circle")
+      .attr('cx', function(d, i) { return i * 100; })
+      .attr('cy', 50)
+      .attr('r', function(d) {
+                 let scaleFactor = 0.000004;
+                 return scaleFactor * d.population;
+                 })
+      .style('fill', '#aaa');
+
+</script>
+</body>
+</html>

@@ -1,0 +1,106 @@
+<!-- initialize the document -->
+<!doctype html>
+<html>
+  <head>
+    <!-- add d3 to html document -->
+    <script src="http://d3js.org/d3.v5.min.js" type="text/JavaScript"></script>
+    <!-- styles the map, giving it a purple stroke and blue fill -->
+      <style>
+    /* STEP 7 */
+      text{ font-family: Helvetica;
+            font-weight: 300;
+            font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <!-- div to keep the map in-->
+    <div id="map">
+      <script>
+        // sets a height and width for the map
+        var height = 600;
+        var width = 900;
+
+        // sets the projection for the map, setting the proper scale
+        // and translatioing to the center
+        var projection = d3.geoMercator()
+                   .scale(80)
+                   .translate([width/2, height/2]);
+
+        // sets up the map, applying the previously defined projection to it,
+        // placing it in the map div, and apending the svg element to it
+        var path = d3.geoPath().projection(projection);
+        var svg = d3.select("#map")
+          .append("svg")
+          .attr("width", width)
+          .attr("height", height);
+
+        // STEP 1
+        var color = d3.scaleLinear()
+          .domain([0,179])
+          .range(['red','yellow']);
+
+        // STEP 3
+        var geoID = function(d) {
+              return "c" + d.id;
+              };
+
+        // STEP 4
+        var click = function(d) {
+         console.log('d',d);
+          d3.selectAll('path').attr('fill-opacity',0.2).attr('stroke', 'transperent')
+          d3.select('#' + geoID(d)).attr('fill-opacity', 1).attr('stroke', 'grey');
+          };
+
+      // STEP 12
+        var radius = d3.scaleLinear().domain([0,12500000]).range([4,20]);
+
+        // loads in the data, printing the feature collection to the console
+        d3.json('world.geojson').then(function(data) {
+        console.log('world', data);
+
+        // for every feature of the geojson file, the map draws a path based
+        // on the feature information. loads the geometries, joining them to the
+        // svg paths
+        svg.selectAll("path")
+        .data(data.features)
+        .enter()
+        .append("path")
+        .attr("d", path)
+        .attr('fill', function(d,i){return color(i);})
+        // STEP 5
+        .attr('id', geoID)
+        .on("click", click);
+         });
+
+
+         d3.csv('cities.csv').then(function(cities) {
+     var cityPoints = svg.selectAll('circle').data(cities);
+     var cityText = svg.selectAll('text').data(cities);
+
+     cityPoints.enter()
+         .append('circle')
+         .attr('cx', function(d) {
+            return projection ([d.lon, d.lat])[0]
+         })
+         .attr('cy', function(d) {
+            return projection ([d.lon, d.lat])[1]
+         })
+         // STEP 13
+         .attr('r', function(d) {return radius(d.population); })
+         .attr('fill-opacity', .5)
+
+     cityText.enter()
+         .append('text')
+         .attr('x', function(d) {
+            return projection([d.lon, d.lat])[0]})
+         .attr('y', function(d) {
+            return projection([d.lon, d.lat])[1]})
+         .attr('dx', 5)
+         .attr('dy', 3)
+        .text(function(d) {return d.label});
+   });
+         // end javascript and other document tags
+      </script>
+    </div>
+  </body>
+</html>

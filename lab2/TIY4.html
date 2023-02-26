@@ -1,0 +1,98 @@
+<!-- initialize the document -->
+<!doctype html>
+<html>
+  <head>
+    <!-- add d3 to html document -->
+    <script src="http://d3js.org/d3.v5.min.js" type="text/JavaScript"></script>
+      <style>
+    /* STEP 7 */
+      text{ font-family: Helvetica;
+            font-weight: 300;
+            font-size: 12px; }
+
+    /* STEP 15 */
+      #tooltip{
+        position: absolute;
+        z-index: 2;
+        background: rgba(0,153,76,0.8);
+        width:130px;
+        height:20px;
+        color:white;
+        font-size: 14px;
+        padding:15px;
+        top:-150px;
+        left:-150px;
+        font-family: "HelveticaNeue-Light", "Helvetica Neue Light",
+        "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif; }
+    </style>
+  </head>
+  <body>
+    <div id = "tooltip"></div>
+    <!-- div to keep the map in-->
+    <div id="map">
+      <script>
+        // sets a height and width for the map
+        var height = 600;
+        var width = 900;
+
+        // sets the projection for the map, setting the proper scale
+        // and translatioing to the center
+        var projection = d3.geoMercator()
+                   .scale(80)
+                   .translate([width/2, height/2]);
+
+        // sets up the map, applying the previously defined projection to it,
+        // placing it in the map div, and apending the svg element to it
+        var path = d3.geoPath().projection(projection);
+        var svg = d3.select("#map")
+          .append("svg")
+          .attr("width", width)
+          .attr("height", height);
+
+        // STEP 1
+        var color = d3.scaleLinear()
+          .domain([0,179])
+          .range(['red','yellow']);
+
+        // STEP 3
+        var geoID = function(d) {
+              return "c" + d.id;
+              };
+
+        // STEP 18
+        var hover = function(d) {
+                      var div = document.getElementById('tooltip')
+                       div.style.left = event.pageX +'px';
+                       div.style.top = event.pageY + 'px';
+                       div.innerHTML = d.properties.name;
+                       d3.selectAll('path').attr('stroke', 'transperent')
+                       d3.select(this).attr('stroke', 'grey');
+                           }
+
+        var out = function(d){
+                 d3.select(this).transition().duration(500).style('stroke', function(d){return 'transparent'});
+                     }
+        // loads in the data, printing the feature collection to the console
+        d3.json('world.geojson').then(function(data) {
+        console.log('world', data);
+
+        // for every feature of the geojson file, the map draws a path based
+        // on the feature information. loads the geometries, joining them to the
+        // svg paths
+        svg.selectAll("path")
+        .data(data.features)
+        .enter()
+        .append("path")
+        .attr("d", path)
+        .attr('fill', function(d,i){return color(i);})
+        // STEP 5
+        .attr('id', geoID)
+        .on("mouseover", hover)
+         .on("mouseout", out);
+         });
+
+         // end javascript and other document tags
+      </script>
+    </div>
+  </body>
+</html>

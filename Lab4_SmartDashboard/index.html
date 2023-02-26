@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+  <script src="http://d3js.org/d3.v5.min.js" charset="utf-8"></script>
+  <script src="https://unpkg.com/topojson@3.0.2/dist/topojson.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.min.js"></script>
+  <!-- Add dashboard.css link -->
+  <link rel="stylesheet" href="css/dashboard.css">
+  <!-- Add base.js line -->
+  <script src="js/base.js"></script>
+  <!-- Add sparkline.js link -->
+  <script src="js/sparkline.js"></script>
+
+  <!-- sidebar -->
+  <div id="info">
+   <div id="title">
+    <!-- Add a title -->
+    <p2>Population of Washington counties in 2020</p2>
+    <p>This map shows a choropleth containing all of the population values for each county in Washington during the year of 2020.
+      Hovering over each individual county will show a line plot in this sidebar -- the plot shows the trend in population for the county
+      that the mouse is currently over. Compare and contrast the populations over the years for every county!
+    </p>
+    <p>Data source: Washington GeoJSON file</p>
+    <p>Natalie Roy, 11/22/22<p>
+   </div>
+   <p id="placename"><!-- location name --></p>
+    <div id="count" class="card">
+     <h5 id="desc"> # Population in the selected county</h5>
+     <p id="county-count"><!--Add a total population in WA in 2020--></p>
+     <h5 id="desc"> <!--Add a title for the chart --></h5>
+    </div>
+    <div id="county-chart"></div>
+    <div id="footer"><p>
+      To make the dashboard smarter, I think it would be cool to show more information specifically when you click on each county in a popup --
+      The popup would then contain a short biography on each county, maybe indicating why the population fluxuates the way it does for each county
+      (whether jobs bring people in/out of the county, or whether other reasons affect population).
+      </form>
+    </p></div>
+  </div>
+  <!-- mainwindow -->
+  <div id="map"></div>
+  <div id="tooltip"></div>
+  <script>
+        // d3.scaleSequential([50000, 100000, 300000, 800000, 2200000], ['#f0f9e8','#ccebc5','#a8ddb5','#7bccc4','#43a2ca','#0868ac'])
+        // d3.scaleSequential(d3.interpolatePurples).domain([2222, 2230000])
+
+
+        // map info
+        var mheight = 700;
+        var mwidth = 1000;
+        var projection = d3.geoMercator()
+        var wa = void 0;
+        var db = d3.map();
+
+        var path = d3.geoPath().projection(projection);
+        var svg = d3.select("#map")
+                .append("svg")
+                .attr("width", mwidth)
+                .attr("height", mheight);
+
+
+        // load data
+          d3.json('data/WAcounties.geojson').then(function(data) {
+
+            // data
+            projection.scale(1).translate([0, 0]);
+                var b = path.bounds(data);
+                var s = .95 / Math.max((b[1][0] - b[0][0]) / mwidth, (b[1][1] -
+                    b[0][1]) / mheight);
+                var t = [(mwidth - s * (b[1][0] + b[0][0])) / 2, (mheight - s *
+                    (b[1][1] + b[0][1])) / 2+50];
+                projection.scale(s).translate(t);
+
+              console.log(data.features)
+
+
+              // color
+              // var color = d3.scaleThreshold().domain([2220, 559165, 1116110, 1673055, 2230000]).range(['#fef0d9','#fdd49e','#fdbb84','#fc8d59','#e34a33','#b30000'])
+              var color = d3.scaleSequential(d3.interpolateRgb("pink","purple")).domain([2220, 2230000])
+
+              // chart
+                  var setDb = function(data) {
+                  data.forEach(function(d) {
+                    db.set(d.properties.OBJECTID, [
+                       {"x": 2000, "y": +d.properties.POP2000},
+                       {"x": 2005, "y": +d.properties.POP2005},
+                       {"x": 2010, "y": +d.properties.POP2010},
+                       {"x": 2015, "y": +d.properties.POP2015},
+                       {"x": 2020, "y": +d.properties.POP2020}
+                    ]);
+                  });
+                };
+           setDb(data.features);
+
+           console.log(db);
+
+
+            // sparkline
+               var sparkline = d3.charts.sparkline()
+                                 .height(260)
+                                 .width(310);
+
+              var chartmargin = {top: 10, right: 30, bottom: 30, left: 30},
+              chartwidth = 400 - chartmargin.left - chartmargin.right,
+              chartheight = 300 - chartmargin.top - chartmargin.bottom;
+
+            // create svg element
+          var chart = d3.select("#county-chart")
+              .append("svg")
+              .attr("width", chartwidth + chartmargin.left + chartmargin.right)
+              .attr("height", chartheight + chartmargin.top + chartmargin.bottom)
+              .append("g").attr('class', 'line')
+              .attr("transform","translate(" + chartmargin.left + "," + chartmargin.top + ")");
+
+            // Create the scale
+          var x = d3.scaleLinear()
+                .domain([2000, 2020])         // This is what is written on the Axis: from 0 to 100
+                .range([0, chartwidth]);       // This is where the axis is placed: from 0px to 400px
+          // Draw the axis
+          chart.append("g")
+               .attr("transform", "translate(0," + chartheight + ")")
+               .call(d3.axisBottom(x).ticks(6));
+
+            console.log('WAcounties', data);
+
+        var map = svg.append('g').attr('class', 'boundary');
+            wa = map.selectAll('path').data(data.features);
+        var name = d3.map(wa, d=>d.properties.NAMELSAD10).keys();
+
+        // hover stuff
+
+        var hover = function(d) {
+              var div = document.getElementById('county-count');
+                  d3.select(this).style('stroke', 'lightSteelBlue').style('stroke-width', 5)
+                  .style('stroke-dasharray', ('3 3'))
+                  div.innerHTML = d.properties.NAMELSAD10 + "<br/> " // call the value of population in 2020
+               var divChart = document.getElementById('county-chart')
+               chart.datum(db.get(d.properties.OBJECTID)).call(sparkline.draw);
+              };
+
+        var out = function(d){
+                var div = document.getElementById('county-count')
+                d3.select(this).transition().duration(500)
+                    .style('stroke', function(d){return 'transparent'})
+                var divChart = document.getElementById('county-chart')
+                chart.select('svg').remove();
+                              }
+
+        // create map
+        wa.enter()
+             .append('path')
+             .attr('d', path)
+             // .style("fill", function (d) {return color(d.properties.POP2020);})
+             .style("fill", function (d) {return color(d.properties.POP2020);})
+             .on("mouseover", hover)
+             .on("mouseout", out);
+
+
+             // add a legend
+              svg.append("g")
+                      .attr("class", "legend")
+                  .attr("transform", "translate(500,50)");
+
+              var legendLinear = d3.legendColor()
+                  .shapeWidth(80)
+                  .orient('horizontal')
+                  .scale(color);
+
+              svg.select(".legend")
+                  .call(legendLinear);
+
+
+                           });
+
+
+  </script>
+</body>
+</html>

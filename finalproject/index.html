@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+  <script src="http://d3js.org/d3.v5.min.js" type="text/JavaScript"></script>
+  <script src="https://unpkg.com/topojson@3.0.2/dist/topojson.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-legend/2.25.6/d3-legend.min.js"></script>
+  <!-- Add dashboard.css link -->
+    <link rel="stylesheet" href="css/dashboard.css">
+  <!-- google fonts -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Bitter">
+  <!-- Add base.js line -->
+  <script src="js/base.js"></script>
+
+  <!-- left sidebar -->
+  <div id="info">  </div>
+    <div id = "tip-header"></div>
+  <!-- main window w/ map -->
+  <div id="map"><h1>disability and income in the united states</h1>
+  <h3>created by: natalie roy | geog 458 fall 2022 final | data source:
+    <a href = "https://data.census.gov/table?q=disability&g=0100000US$0400000_0400000US53$0500000&tid=ACSST5Y2020.S1811">united states census</a></h3>
+  </div>
+
+  <div id = "bar-body">
+    <p>the following is a map portraying the distribution of disabled people in the
+    workforce across the united states in 2020. disabled people, who already face limitations
+    entering the workforce due to their disability, frequently have less income
+    than abled people.</p>
+    <p> hovering over the map displays various information about the disabled population
+      in the workforce per state. you can zoom in to the map using a scrollwheel to get
+      to specific states; the hover tooltip will show information about the percentage
+      of disabled people in the workforce, while the window below displays information
+      on the income disabled people have. it is worth noting that the census considers the poverty
+      line any income below <a href = "https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=web&cd=&cad=rja&uact=8&ved=2ahUKEwjw8cjO8_X7AhXiPn0KHXSEB-AQFnoECBIQAw&url=https%3A%2F%2Fwww.census.gov%2Ftopics%2Fincome-poverty%2Fpoverty%2Fguidance%2Fpoverty-measures.html%23%3A~%3Atext%3DThe%2520family%27s%25202021%2520poverty%2520threshold%2520(below)%2520is%2520%252433%252C148.&usg=AOvVaw1SshKTsSwyqvniI5phcuJE">$33,148.
+      </a></p>
+  </div>
+    <script>
+
+      // set a height and width for the map
+      var height = 600;
+      var width = 1000;
+
+      var tipWidth = 200,
+             tipHeight = 200;
+
+      var chart = d3.select("#tip-body").append("svg")
+                      .attr('width', tipWidth).attr('height', tipHeight);
+
+      // projection
+      var projection = d3.geoAlbersUsa()
+                 .scale(1100)
+                 .translate([width/2, height/2]);
+
+
+      var path = d3.geoPath().projection(projection);
+      var svg = d3.select("#map")
+        .append("svg")
+        .attr("width", width)
+        .attr("height", height);
+
+      // load in geojson and disability csv
+      Promise.all([d3.json('data/usState.geojson'),
+               d3.csv('data/disability.csv'
+             )]).then(function ready(loadData) {
+
+               // colorscale
+              var color = d3.scaleSequential(d3.interpolatePurples).domain([.19, .35]);
+
+              // loading data
+              var states = loadData[0]
+              var data = loadData[1]
+
+              // organizing data
+              // emp_pec = employee percent -- the percentage of disabled employees in the state
+              var emp_pec = d3.nest().key(function(d){return d.state}).map(data);
+              var emp_pec_Sorted = data.slice().sort(function(a,b){return d3.descending(+a.disabled_employed_percent, +b.disabled_employed_percent);})
+              var emp_pecList = emp_pec_Sorted.map(d => d.state);
+              var emp_pecbyState = new Map(data.map(d => [d.state, +d.disabled_employed_percent]));
+              var abl_pecbyState = new Map(data.map(d => [d.state, +d.abled_employed_percent]));
+              var dis_earnbyState = new Map(data.map(d => [d.state, +d.disabled_earnings_below_34999]));
+              var abl_earnbyState = new Map(data.map(d => [d.state, +d.abled_earnings_below_34999]));
+
+
+
+              // function for bar chart
+
+              function buildBar(d) {
+                // console.log(d)
+              // //    draw a chart
+               var xScale = d3.scaleLinear().domain([0, 1]).range([0, tipWidth]);
+               yScale = d3.scaleBand().domain(emp_pecList).rangeRound([0, tipHeight]);
+
+               chart.selectAll('.bar')
+                   .data(emp_pec_Sorted)
+                   .enter().append('rect')
+                   .attr('class', 'bar')
+                   .attr('id', function(d) { return (d.state); })
+                   .attr('x', xScale(0))
+                   .attr('y', function(d) { return yScale(d.state); })
+                   .attr('width', function(d) { return xScale(d.disabled_employed_percent); })
+                   .attr('height', yScale.bandwidth())
+                   .attr('fill', function(d){return color(d.disabled_employed_percent);});
+               }
+
+
+              // create a div variable for tooltip
+              var div = d3.select("body").append("div")
+                .attr("class", "tooltip")
+                .style("opacity", 0);
+
+      // create map
+      svg.selectAll("path")
+       .data(states.features)
+       .enter()
+       .append("path")
+       .attr("d", path)
+       .style("stroke", '#F0E9D2')
+       .style("fill", function (d) {return color(emp_pecbyState.get(d.properties.name));})
+
+       // on mouseover
+       .on('mouseover', function (d, i) {
+            d3.select(this).transition()
+              .duration('100');
+            d3.select(this).style('fill', '#678983')
+            div.transition()
+              .duration(100)
+              .style("opacity", 1);
+
+
+
+          div.html(d.properties.name + "<p> percentage of disabled people in workforce: <b>" +
+          (emp_pecbyState.get(d.properties.name)*100).toFixed(1) + "%</b> <p> percentage of able-bodied people in workforce: <b>" +
+          (abl_pecbyState.get(d.properties.name)*100).toFixed(1) + "%</b>")
+            // positions div over cursor
+              .style("left", (d3.event.pageX + 10) + "px")
+              .style("top", (d3.event.pageY - 15) + "px");
+
+              // var svg1 = d3.select("#bar-body")
+              //         .append("svg")
+              //         .selectAll("rect")
+              //         .data([emp_pecbyState.get(d.properties.name)*200,
+              //            abl_pecbyState.get(d.properties.name)*200])
+              //         .enter()
+              //         .append("rect")
+              //         .attr("width", 20)
+              //         .attr("height", d => d)
+              //         .style("fill", "#FE9922")
+              //         .style("stroke", "#9A8B7A")
+              //         .style("stroke-width", "1px")
+              //         .attr("x", (d,i) => i * 10)
+              //         .attr("y", d => 100 - d);
+
+
+              // // puts bar chart on info panel
+              // d3.select(this).call(buildBar)
+              // var divHead = document.getElementById('tip-header')
+              // console.log(divHead)
+              // divHead.innerHTML =  '<h2>  '+d.properties.name +'</h2>     <strong>Forest coverage: '
+              // + dis_earnbyState.get(d.properties.name) +'%' +'<br/>Forested area: '
+              // + abl_earnbyState.get(d.properties.name)+'km<sup>2</sup></strong>'
+              // var divChart = document.getElementById('bar-body')
+              // d3.select('#'+d.properties.name).attr('fill','orange')
+
+
+            // // puts name on info panel
+            var div2 = document.getElementById('info')
+            d3.select(this).transition().duration(500)
+            div2.innerHTML = "<br/> <br/> <br/> <br/> <br/> <br/> <br/> <br/> <br/> <br/> <br/> <br/> <br/> <br/> <br/> <br/> <br/> <br/> <br/> <br/> <br/> <center><h1>"+ d.properties.name + "<br/></h1></center><p>" +
+            "percentage of disabled people in workforce whose income is below $34,999: <b>"
+            + (dis_earnbyState.get(d.properties.name)*100).toFixed(1) + "%</b>" +
+            "<p>percentage of able-bodied people in workforce whose income is below $34,999: <b>"
+            + (abl_earnbyState.get(d.properties.name)*100).toFixed(1) + "%</b>"
+             })
+
+
+        // on mouseout
+        .on('mouseout', function (d, i) {
+            d3.select(this).transition()
+              .duration('200');
+            d3.select(this).style('fill', function(d){return color(emp_pecbyState.get(d.properties.name));})
+            div.transition()
+              .duration('200')
+              .style("opacity", 0);
+
+          svg1.style("fill", function(d){return "transparent"})
+                  });
+
+       // add a legend
+        svg.append("g")
+                .attr("class", "legend")
+            .attr("transform", "translate(700,40)");
+
+        var legendLinear = d3.legendColor()
+            .shapeWidth(45)
+            .orient('horizontal')
+            .labelFormat(d3.format(".2f"))
+            .title("percentage of disabled people in the workforce")
+            .scale(color);
+
+        svg.select(".legend")
+            .call(legendLinear)
+            .style("fill", "#678983");
+
+
+// zoom function
+
+    var mapZoom = d3.zoom()
+       .on("zoom", zoomed)
+
+    var zoomSettings = d3.zoomIdentity
+       .translate(width/2, height/2)
+       .scale(1100)
+
+    d3.select("svg").call(mapZoom).call(mapZoom.transform, zoomSettings)
+
+    function zoomed() {
+      var e = d3.event
+        projection.translate([e.transform.x, e.transform.y])
+          .scale(e.transform.k)
+        d3.selectAll("path").attr("d", path)
+       .attr("cx", d => projection([d.x,d.y])[0])
+       .attr("cy", d => projection([d.x,d.y])[1])
+    }
+
+               });
+
+    </script>
+
+
+  <!-- right sidebar -->
+<div id="info2">
+
+</div>
+
+</body>
+</html>

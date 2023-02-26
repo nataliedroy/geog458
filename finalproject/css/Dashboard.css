@@ -1,0 +1,89 @@
+html {
+  background-color: #E6DDC4;
+  color: #F0E9D2;
+}
+
+body {
+  width: 99vw;
+  /* float: left; */
+}
+
+
+#map {
+  display: block;
+  position: inline;
+  display: inline-block;
+  height: 97vh;
+  color: #F0E9D2;
+  width: 70%;
+  float: right;
+}
+
+#bar-body {
+  background-color: #678983;
+  width: 25%;
+  float: left;
+  /* display: flex;
+  flex-flow: column; */
+  /* display: inline-block; */
+  position: fixed;
+}
+
+#info {
+  background-color: #678983;
+  width: 25%;
+  float: left;
+  /* display: inline-block; */
+  /* height: 97vh; */
+  position: fixed;
+}
+
+p {
+  padding: 5px;
+  font-family: "Bitter", sans-sans-serif;
+
+}
+
+/* #info2 {
+  background-color: #678983;
+  width: 200px;
+  float: right;
+  display: inline-block;
+  height: 97vh;
+
+} */
+
+/* @media only screen and (max-width: 1026px) {
+#info, #info2 {
+  visibility: hidden !important;
+} */
+
+div.tooltip {
+ position: absolute;
+ text-align: center;
+ padding: .2rem;
+ background: #49615d;
+ color: #E6DDC4;
+ border: 0px;
+ border-radius: 8px;
+ pointer-events: none;
+ font-size: .7rem;
+ font-family: "Bitter", sans-serif;
+}
+
+h1 {
+  display: block;
+  color: #31244a;
+  font-family: "Bitter", sans-serif;
+}
+
+h3 {
+  display: block;
+  color: #31244a;
+  font-family: "Bitter", sans-serif;
+}
+
+svg text {
+  font-family: "Bitter", sans-serif;
+  font-size: 12px;
+}

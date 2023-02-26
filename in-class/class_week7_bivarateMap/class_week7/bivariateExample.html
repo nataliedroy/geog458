@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>bivariate</title>
+  <style>
+  svg {
+    border-style: solid;
+    border-width: 1px;
+    border-color: #ccc;
+  }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <script src="http://d3js.org/d3.v6.min.js" charset="utf-8"></script>
+  <script src="https://unpkg.com/topojson@3.0.2/dist/topojson.js"></script>
+
+  <script>
+
+      var height = 610;
+      var width = 1100;
+      //var projection = d3.geoMercator();
+      var path = d3.geoPath()//.projection(projection);
+      var colors =  ["#e8e8e8", "#ace4e4", "#5ac8c8",
+                     "#dfb0d6", "#a5add3", "#5698b9",
+                     "#be64ac", "#8c62aa", "#3b4994"]
+
+      var svg = d3.select("#map")
+          .append("svg")
+          .attr("width", width)
+          .attr("height", height);
+
+      Promise.all([d3.json('counties-albers-10m.json'),
+                   d3.csv('cdc-diabetes-obesity.csv')])
+                .then(function ready(loadData) {
+
+        var us = loadData[0];
+        var cdc = loadData[1];
+        var counties = topojson.feature(us, us.objects.counties);
+
+        var states = new Map(us.objects.states.geometries.map(d => [d.id, d.properties]));
+        var data = new Map(cdc.map(d => [d.county, [+d.diabetes, +d.obesity]]));
+                      console.log(states);
+                      console.log(data);
+
+        var n = Math.floor(Math.sqrt(colors.length));
+        var x = d3.scaleQuantile(Array.from(data.values(), d => d[0]), d3.range(n));
+        var y = d3.scaleQuantile(Array.from(data.values(), d => d[1]), d3.range(n));
+        console.log(Array.from(data.values(), d => d[0]), d3.range(n));
+        console.log(y);
+
+        var color = function(d){
+                    if (!d) {return "#ccc";} else
+                    {return colors[y(d[1]) + x(d[0]) * n];};};
+
+//-------------------draw a map---------------------------------------
+      svg.append("g")
+         .selectAll("path")
+         .data(counties.features)
+         .join("path")
+         .attr("fill", d => color(data.get(d.id)))
+         .attr("d", path);
+
+      svg.append("path")
+        .datum(topojson.mesh(us, us.objects.states, (a, b) => a !== b))
+        .attr("fill", "none")
+        .attr("stroke", "white")
+        .attr("stroke-linejoin", "round")
+        .attr("d", path);
+
+//---------------------------- legend -------------------
+       var k = 24;
+       var ci = [[0,0],[0,1],[0,2],
+                 [1,0],[1,1],[1,2],
+                 [2,0],[2,1],[2,2]]
+    var legend1 = svg.append("g")
+                     .attr("transform", "translate(870,450)")
+                     .selectAll("rect").data(ci).enter()
+                     .append("rect")
+                     .attr('width',k)
+                     .attr('height', k)
+                     .attr('x', function(d){return (d[0]*k)})
+                     .attr('y', function(d){return ((2-d[1])*k)})
+                     .attr('fill', function(d){ return colors[3*d[1] + d[0]]});
+
+    var legend = svg.append("g")
+                    .attr("transform", "translate(870,450)")
+        legend.append('g')
+              .attr("font-family", "sans-serif")
+              .attr("font-size", 10)
+              .attr("transform","translate(-36,-36)" );
+
+       legend.append("g")
+              .append("path")
+              .attr("d", "M0,-2L0,72L72,72")
+              .attr('stroke', 'black')
+              .attr("fill", "none");
+
+       legend.append("g")
+              .append("path")
+              .attr("d", "M-4,-2L4,-2L0,-8Z")
+              .attr("stroke", "black");
+
+       legend.append("g")
+              .append("path")
+              .attr("d", "M72,68L72,76L78,72Z")
+              .attr("stroke", "black");
+
+       legend.append("g")
+             .append("text")
+             .text("Obesity")
+             .attr("x", 20).attr("y",88);
+
+       legend.append("g").append("text").text("Diabetes")
+             .attr("x", 0).attr("y",0)
+             .attr("transform", "translate(-3, 60), rotate(270)");
+
+    })
+  </script>
+</body>

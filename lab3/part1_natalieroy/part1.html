@@ -1,0 +1,123 @@
+<!doctype html>
+<html>
+  <head>
+   <style>
+    path {
+       stroke-width: 1;
+       stroke: #75739F;
+       fill: none;
+    }
+    </style>
+    <script src="http://d3js.org/d3.v5.min.js" type="text/JavaScript"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-geo-projection@4"></script>
+    <script src="colorbrewer.js"></script>
+  </head>
+  <body>
+    <div id="map">
+      <script>
+        var height = 600;
+        var width = 900;
+        // var projection = d3.geoMercator().scale(80).translate([width/2, height/2]);
+
+        projection = d3.geoOrthographic()
+                    .scale(200)
+                    .translate([width/2, height/2])
+                    .center([0,0]);
+
+
+
+        var path = d3.geoPath().projection(projection);
+        var svg = d3.select("#map")
+          .append("svg")
+          .attr("width", width)
+          .attr("height", height);
+
+     d3.json('world.geojson').then(function(data) {
+         var mapZoom = d3.zoom()
+             .on("zoom", zoomed);
+
+           //Orthographic should start out untranslated
+           var zoomSettings = d3.zoomIdentity
+             .translate(0, 0)
+             .scale(120);
+
+           //This scale will be used to transform for x-zoom to degrees
+           var rotateScale = d3.scaleLinear()
+                               .domain([-500, 0, 500])
+                               .range([-180, 0, 180]);
+
+           d3.select("svg").call(mapZoom).call(mapZoom.transform, zoomSettings);
+
+           function zoomed() {
+             var e = d3.event;
+
+             //Even though projection.rotate can deal with rotations greater than 360 degrees
+             //and less than -360 degrees, we need to filter the points so this will help.
+              var currentRotate = rotateScale(e.transform.x) % 360
+
+              //Rotate the projection only on the x-axis
+              projection.rotate([currentRotate, 0])
+                         .scale(e.transform.k)
+         //projection.translate([e.transform.x, e.transform.y]).scale(e.transform.k);
+             d3.selectAll("path.graticule").attr("d", path);
+             //Paths will be automatically clipped
+             d3.selectAll("path.countries").attr("d", path)
+          .style("fill", d => newFeatureColor(d3.geoArea(d)))
+          .style("stroke", d => d3.rgb(newFeatureColor(d3.geoArea(d))).darker())
+
+             d3.selectAll("circle.cities")
+               .each(function (d, i) {
+             var projectedPoint = projection([d.x,d.y])
+             var x = parseInt(d.x)
+             var display = x + currentRotate < 90 && x + currentRotate > -90
+     || (x + currentRotate < -270 && x + currentRotate > -450)
+     || (x + currentRotate > 270 && x + currentRotate < 450)
+     ? "block" : "none"       //For points, we need to hide the points that aren't in the current view.
+           d3.select(this)
+             .attr("cx", projectedPoint[0])
+             .attr("cy", projectedPoint[1])
+             .style("display", display)
+         })
+       }
+
+       d3.csv('cities.csv').then(function(data){
+
+           svg.selectAll("circle").data(data)
+             .enter()
+             .append("circle")
+             .attr("class", "cities")
+             .attr("r", 3)
+             .attr("cx", d => projection([d.x,d.y])[0])
+             .attr("cy", d => projection([d.x,d.y])[1])
+
+        });
+
+
+     console.log('world', data);
+
+     var featureData = data.features;
+   var realFeatureSize = d3.extent(featureData, d => d3.geoArea(d))
+   var newFeatureColor = d3.scaleQuantize().domain(realFeatureSize).range(colorbrewer.Reds[7]);
+   svg.selectAll("path")
+      .data(data.features)
+      .enter()
+      .append("path")
+      .attr("d", path)
+      .attr("class", "countries")
+      .style("fill", d => newFeatureColor(d3.geoArea(d)))
+
+              var graticule = d3.geoGraticule();
+              d3.select("svg").insert("path", "path.countries")
+                .datum(graticule)
+                .attr("class", "graticule line")
+                .attr("d", path)
+              d3.select("svg").insert("path", "path.countries")
+                .datum(graticule.outline)
+                .attr("class", "graticule outline")
+                .attr("d", path)
+
+});
+      </script>
+    </div>
+  </body>
+</html>

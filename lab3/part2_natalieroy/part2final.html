@@ -1,0 +1,163 @@
+<!doctype html>
+<html>
+  <head>
+    <script src="http://d3js.org/d3.v5.min.js" type="text/JavaScript"></script>
+    <script src="https://unpkg.com/topojson@3.0.2/dist/topojson.js"></script>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div id="map"></div>
+    <div id="tooltip">
+      <div id="tip-header"></div>
+      <div id="tip-body"></div>
+    </div>
+
+      <script>
+
+     var height = 600;
+     var width = 800;
+     var tipWidth = 200,
+            tipHeight = 200;
+
+     var chart = d3.select("#tip-body").append("svg")
+                     .attr('width', tipWidth).attr('height', tipHeight);
+
+      projection = d3.geoOrthographic()
+                    .scale(200)
+                    .translate([width/2, height/2])
+
+      var path = d3.geoPath().projection(projection);
+      var svg = d3.select("#map")
+          .append("svg")
+          .attr("width", width)
+          .attr("height", height);
+
+          Promise.all([d3.json('data/world-110.json'),
+                   d3.csv('data/animal2.csv'
+                 )]).then(function ready(loadData) {
+                   //colorscale
+                   var colorScale = d3.scaleSequential(d3.interpolatePurples).domain([210, 10238]);
+
+
+                  //loading data
+                  var world = loadData[0]                                                                                                         //1
+                  var data = loadData[1]                                                                                                           //2
+                  //organizing Data
+                  var countries = topojson.feature(world, world.objects.ne_110m_admin_0_countries);  //3
+
+                  var animal = d3.nest().key(function(d){return d.country}).map(data);                                  //4
+                  var animalSorted = data.slice().sort(function(a,b){return d3.descending(+a.animal, +b.animal);})   //5
+                  var countryList = animalSorted.map(d => d.country);                                                         //6
+                  var animalbyCountry = new Map(data.map(d => [d.country, +d.animal]));                     //7
+                  // var animalbyCountrybyArea = new Map(data.map(d => [d.country, +d.area]));               //8
+                  // console.log(world)
+                  // console.log(data)
+                  // console.log(animal)
+                  // console.log(data[0].country)
+                  // console.log(animalSorted)
+                  // console.log(countryList)
+                  console.log(world)
+                  console.log(countries)
+                  // console.log(animalbyCountrybyArea)
+
+                  // function for bar chart
+
+                  function buildBar(d) {
+                  //    draw a chart
+                   var xScale = d3.scaleLinear().domain([210, 10238]).range([0, tipWidth]);
+                   yScale = d3.scaleBand().domain(countryList).rangeRound([0, tipHeight]);
+
+                   chart.selectAll('.bar')
+                       .data(animalSorted)
+                       .enter().append('rect')
+                       .attr('class', 'bar')
+                       .attr('id', function(d) { return (d.country); })
+                       .attr('x', xScale(0))
+                       .attr('y', function(d) { return yScale(d.country); })
+                       .attr('width', function(d) { return xScale(d.animal); })
+                       .attr('height', yScale.bandwidth())
+                       .attr('fill', function(d){return colorScale(d.animal);});
+                   }
+
+                  //function for mousehover event goes here
+                  var hover = function(d) {
+                    var div = document.getElementById('tooltip')
+                    div.style.left = event.pageX +'px';
+                    div.style.top = event.pageY + 'px';
+                    d3.selectAll('path').style('stroke', 'transperent')
+                    d3.select(this).style('stroke', 'grey').style('stroke-dasharray', ('3 3')).call(buildBar)
+                    var divHead = document.getElementById('tip-header')
+                    divHead.innerHTML =  '<h2>  '+d.properties.admin +'</h2>     <strong>Number of endangered species: '
+                    + animalbyCountry.get(d.properties.admin) +'<sup></sup></strong>'
+                    var divChart = document.getElementById('chart-body')
+                    console.log(d)
+                    d3.select('#'+d.properties.admin).attr('fill','orange')
+                 }
+                 var out = function(d){
+                    var div = document.getElementById('tooltip')
+                    d3.select(this).transition().duration(500)
+                        .style('stroke', function(d){return 'transparent'});
+                    d3.select('#'+d.properties.admin).attr('fill', function(d){return 'transparent'})
+                            }
+
+                 // function for making a map goes here
+                 svg.selectAll("path")
+                   .data(countries.features)
+                   .enter()
+                   .append("path")
+                   .attr("d", path)
+                   .attr("class", "country")
+                   .style("fill", "green")
+                   .on("mouseover", hover)
+                   .on("mouseout", out)
+                   .style("fill", function (d) {return colorScale(animalbyCountry.get(d.properties.admin));})
+                   .style("stroke", '#fff');
+
+
+             var graticule = d3.geoGraticule();
+                     d3.select("svg").insert("path", "path.country")
+                       .datum(graticule)
+                       .attr("class", "graticule line")
+                       .attr("d", path)
+                       .attr("fill", "aliceblue")
+
+                 //function for zoom goes here
+
+                 var mapZoom = d3.zoom().on("zoom", zoomed);
+
+               //Orthographic should start out untranslated
+                 var zoomSettings = d3.zoomIdentity
+                     .translate(0, 0)
+                     .scale(200);
+
+                   //This scale will be used to transform for x-zoom to degrees
+                 var rotateScale = d3.scaleLinear()
+                                       .domain([-500, 0, 500])
+                                       .range([-180, 0, 180]);
+
+                 d3.select("svg").call(mapZoom).call(mapZoom.transform, zoomSettings);
+
+                 function zoomed() {
+                         var e = d3.event;
+                         var currentRotateX = rotateScale(e.transform.x) % 360;
+                         //make the globe roll around up and down
+                         var currentRotateY = rotateScale(e.transform.y) % 360;
+
+                         projection.rotate([currentRotateX, currentRotateY])
+                                   .scale(e.transform.k)
+                         d3.selectAll("path.graticule").attr("d", path);
+                         d3.selectAll("path.country").attr("d", path)
+                         .on("mouseover", hover)
+                         .on("mouseout", out)
+                         .style("fill", function (d) {return colorScale(animalbyCountry.get(d.properties.admin));})
+                         .style("stroke", '#fff');
+                     }
+
+                   });
+
+      // d3.json('data/world-110.json').then(function(data){
+      //     console.log('world',data);
+      // });
+      </script>
+  </body>
+</html>

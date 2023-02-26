@@ -1,0 +1,89 @@
+<!-- initializes the html page -->
+<!doctype html>
+<html>
+<head>
+  <!-- adds d3 javascript to the page -->
+   <script src="http://d3js.org/d3.v5.min.js" charset="utf-8"></script>
+</head>
+<body>
+  <!-- creates a div for the visualization-->
+   <div id="viz">
+     <script>
+     // set the dimensions and margins of the graph
+  var margin = {top: 20, right: 20, bottom: 140, left: 100},
+      width = 600 - margin.left - margin.right,
+      height = 600 - margin.top - margin.bottom;
+
+  // creates the svg element and respecting margins
+  var svg = d3.select("#viz")
+      .append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+      .append("g")
+      .attr("transform",
+            "translate(" + margin.left + "," + margin.top + ")");
+
+
+  d3.csv("cities.csv").then (function(incomingData) {
+      console.log(incomingData);
+       // create a list with the city labels for x axis label.
+       var cityName = incomingData.map( d => d.label)
+       console.log(cityName);
+       //
+       var maxPopulation = d3.max(incomingData, function(d) {return parseInt(d.population)})
+       console.log(maxPopulation);
+            // creates the x scale (city name)
+            var x = d3.scaleBand()
+              .domain(cityName)         // This is what is written on the Axis
+              .range([0, width]);       // This is the corresponding value I want in Pixel
+
+            // creates the y scale (population)
+            var y = d3.scaleLinear().domain([0, maxPopulation]).range([height, 0]);
+
+            // draws the rectangles
+            svg.selectAll("rect")
+              // grabs the data
+              .data(incomingData)
+              .enter()
+              // creates rectangles
+              .append("rect")
+              .attr("width", 50)
+              .attr("height", d =>  height - y(parseInt(d.population)))
+              // bars are moved 60 pixels for each bar
+              .attr("x", (d,i) => (i * 60 ))
+              // bars are tall in relation to their population
+              .attr("y", d => y(parseInt(d.population)))
+              // colors the bars in
+              .style("fill", "#FE9922")
+              .style("stroke", "#9A8B7A")
+              .style("stroke-width", "1px")
+
+          // maps the bottom axis onto the graph
+          svg.append("g")
+              .attr("transform", "translate(0," + height + ")")
+              .call(d3.axisBottom(x))
+              .selectAll("text")
+
+          // maps the left axis onto the graph
+          svg.append("g")
+            .call(d3.axisLeft(y))
+
+            // adds x axis label called "cities" to the graph
+            svg.append("text")
+                  .attr("text-anchor", "end")
+                  .attr("x", width)
+                  .attr("y", height + margin.top + 20)
+                  .text("Cities");
+
+            // adds a y axis label called "population" to the graph
+            svg.append("text")
+                  .attr("text-anchor", "end")
+                  .attr("transform", "rotate(-90)")
+                  .attr("y", -margin.left+20)
+                  .attr("x", -margin.top)
+                  .text("Population")
+            });
+     </script>
+   </div>
+</body>
+</html>

@@ -1,0 +1,33 @@
+<!-- initialize HTML document -->
+<!doctype html>
+<html>
+<head>
+  <!-- load in d2 javascript -->
+   <script src="http://d3js.org/d3.v5.min.js" charset="utf-8"></script>
+</head>
+<body>
+   <!-- a div to store our data visualization in -->
+   <div id="viz">
+     <script>
+     // creates a y-axis scale for the bar graph in svg1 so that data can be
+     // displayed. uses a polylinear scale
+     var yScale = d3.scaleLinear().domain([0,100,500]).range([0,50,100]);
+     // svg 1 adds 6 rectancles into the div
+     var svg1 = d3.select("#viz")
+             .append("svg")
+             .selectAll("rect")
+             // data points
+             .data([14, 68, 24500, 430, 19, 1000, 5555])
+             .enter()
+             .append("rect")
+             .attr("width", 10)
+             .attr("height", d => yScale(d))
+             .style("fill", "#FE9922")
+             .style("stroke", "#9A8B7A")
+             .style("stroke-width", "1px")
+             .attr("x", (d,i) => i * 10)
+             .attr("y", d => 100 - yScale(d));
+     </script>
+   </div>
+</body>
+</html>

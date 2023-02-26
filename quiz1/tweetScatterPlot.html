@@ -1,0 +1,76 @@
+<!doctype html>
+<html>
+<head>
+  <script src="http://d3js.org/d3.v4.min.js" charset="utf-8"></script>
+</head>
+<body>
+  <div id="viz"></div>
+    <script>
+    // set the dimensions and margins of the graph
+    var margin = {top: 20, right: 20, bottom: 140, left: 100},
+        width = 600 - margin.left - margin.right,
+        height = 600 - margin.top - margin.bottom;
+
+    // create svg element, respecting margins
+    var svg = d3.select("#viz")
+               .append("svg")
+               .attr("width", width + margin.left + margin.right)
+               .attr("height", height + margin.top + margin.bottom)
+               .append("g")
+               .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+   // Add X axis label:
+       svg.append("text")
+          .attr("text-anchor", "end")
+          .attr("x", 400 )
+          .attr("y", 500 )
+          .text("Tweet Time on Dec 23, 2013");
+  // Y axis label:
+      svg.append("text")
+         .attr("text-anchor", "end")
+         .attr("transform", "rotate(-90)")
+         .attr("y", -margin.left+20)
+         .attr("x", -margin.top)
+         .text("Tweet Impacts  (retweets and favorites)")
+
+    d3.json("tweets.json", function(data) {
+        var tweetData = data.tweets;
+        tweetData.forEach (function (el) {
+                  el.impact = el.favorites.length + el.retweets.length;
+                  el.tweetTime = new Date(el.timestamp)
+                  });
+
+      var maxImpact = d3.max(tweetData, function(el) {return el.impact});
+      var startEnd = d3.extent(tweetData, function(el){return el.tweetTime;});
+      var timeRamp = d3.scaleTime().domain(startEnd).range([20, 480]);
+      var yScale = d3.scaleLinear().domain([0, maxImpact]).range([460, 0]);
+      var radiusScale = d3.scaleLinear().domain([0,2]).range([1, 20]);
+      var colorScale = d3.scaleLinear().domain([0,maxImpact]).range(["lightGrey", "red"]);
+
+      svg.selectAll("circle")
+         .data(tweetData)
+         .enter()
+         .append("circle")
+         .attr("r", function(d) {return  radiusScale(d.favorites.length);})
+         .attr("cx", function(d) {return  timeRamp(d.tweetTime);})
+         .attr("cy", function(d) {return  yScale(d.impact);})
+         .style("fill", function(d){return colorScale(d.retweets.length);})
+         .style("stroke", "light-blue")
+         .style("stroke-width", "1px");
+
+     svg.selectAll(".label").data(tweetData).enter().append("text").attr("class", "label")
+         .text(function(d){return d.user;})
+         .attr("x", function(d) {return  timeRamp(d.tweetTime);})
+         .attr("y", function(d) {return  yScale(d.impact);});
+
+    svg.append("g")
+        .call(d3.axisLeft(yScale));
+
+    svg.append("g")
+        .attr("transform", "translate(0,460)")
+        .call(d3.axisBottom(timeRamp));
+   });
+
+    </script>
+</body>
+</html>

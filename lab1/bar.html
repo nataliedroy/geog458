@@ -1,0 +1,29 @@
+<!-- initialize HTML document -->
+<!doctype html>
+<html>
+<head>
+  <!-- load in d2 javascript -->
+   <script src="http://d3js.org/d3.v5.min.js" charset="utf-8"></script>
+</head>
+<body>
+   <!-- a div to store our data visualization in -->
+   <div id="viz">
+     <script>
+     // svg 1 adds 6 rectancles into the div
+     var svg1 = d3.select("#viz")
+             .append("svg")
+             .selectAll("rect")
+             .data([15, 50, 22, 8, 100, 10])
+             .enter()
+             .append("rect")
+             .attr("width", 10)
+             .attr("height", d => d)
+             .style("fill", "#FE9922")
+             .style("stroke", "#9A8B7A")
+             .style("stroke-width", "1px")
+             .attr("x", (d,i) => i * 10)
+             .attr("y", d => 100 - d);
+     </script>
+   </div>
+</body>
+</html>
